@@ -32,8 +32,7 @@ use crate::png::PngData;
 use crate::png::PngImage;
 use crate::reduction::*;
 use crc::{Crc, CRC_32_ISO_HDLC};
-use image::{DynamicImage, GenericImageView, ImageFormat, Pixel};
-use log::{debug, error, info, warn};
+use log::{debug, info, warn};
 use rayon::prelude::*;
 use std::fmt;
 use std::fs::{copy, File, Metadata};
@@ -699,28 +698,7 @@ fn optimize_png(
         );
     }
 
-    let (old_png, new_png) = rayon::join(
-        || image::load_from_memory_with_format(original_data, ImageFormat::Png),
-        || image::load_from_memory_with_format(&output, ImageFormat::Png),
-    );
-
-    if let Ok(new_png) = new_png {
-        if let Ok(old_png) = old_png {
-            if images_equal(&old_png, &new_png) {
-                return Ok(output);
-            }
-        } else {
-            // The original image might be invalid if, for example, there is a CRC error,
-            // and we set fix_errors to true. In that case, all we can do is check that the
-            // new image is decodable.
-            return Ok(output);
-        }
-    }
-
-    error!(
-        "The resulting image is corrupted and will not be outputted.\nThis is a bug! Please report it at https://github.com/shssoichiro/oxipng/issues"
-    );
-    Err(PngError::new("The resulting image is corrupted"))
+    Ok(output)
 }
 
 fn perform_reductions(
@@ -1064,17 +1042,4 @@ fn copy_times(input_path_meta: &Metadata, out_path: &Path) -> PngResult<()> {
             out_path, err_io
         ))
     })
-}
-
-/// Compares images pixel by pixel for equivalent content
-fn images_equal(old_png: &DynamicImage, new_png: &DynamicImage) -> bool {
-    let a = old_png.pixels().filter(|x| {
-        let p = x.2.channels();
-        !(p.len() == 4 && p[3] == 0)
-    });
-    let b = new_png.pixels().filter(|x| {
-        let p = x.2.channels();
-        !(p.len() == 4 && p[3] == 0)
-    });
-    a.eq(b)
 }
