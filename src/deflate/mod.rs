@@ -54,7 +54,7 @@ pub fn zopfli_deflate(data: &[u8]) -> PngResult<Vec<u8>> {
 
     let mut output = Vec::with_capacity(max(1024, data.len() / 20));
     let options = zopfli::Options::default();
-    match zopfli::compress(&options, &zopfli::Format::Zlib, data, &mut output) {
+    match zopfli::compress(&options, &zopfli::Format::Zlib, data, data.len() as u64, &mut output) {
         Ok(_) => (),
         Err(_) => return Err(PngError::new("Failed to compress in zopfli")),
     };
